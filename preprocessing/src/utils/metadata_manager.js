@@ -15,6 +15,27 @@ const __dirname = path.dirname(__filename);
 const METADATA_FILE = path.resolve(__dirname, '../../../data/metadata/documents_metadata.json');
 
 /**
+ * Format date to readable 12-hour format
+ */
+function formatDate(date) {
+  const d = date || new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  
+  hours = hours % 12;
+  hours = hours ? hours : 12; // Convert 0 to 12
+  const formattedHours = String(hours).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${formattedHours}:${minutes}:${seconds} ${ampm}`;
+}
+
+
+/**
  * Initialize metadata file if it doesn't exist
  */
 export function initializeMetadata() {
@@ -29,7 +50,7 @@ export function initializeMetadata() {
   if (!fs.existsSync(METADATA_FILE)) {
     const initialData = {
       version: "1.0",
-      last_updated: new Date().toISOString(),
+      last_updated: formatDate(),
       total_documents: 0,
       sources: {
         "pakistan-code": 0,
@@ -41,7 +62,7 @@ export function initializeMetadata() {
       documents: []
     };
     fs.writeFileSync(METADATA_FILE, JSON.stringify(initialData, null, 2));
-    console.log(`✅ Metadata file initialized at: ${METADATA_FILE}`);
+    // Removed console log for cleaner output
   }
 }
 
@@ -60,7 +81,7 @@ export function loadMetadata() {
  * Save metadata to file
  */
 export function saveMetadata(metadata) {
-  metadata.last_updated = new Date().toISOString();
+  metadata.last_updated = formatDate();
   metadata.total_documents = metadata.documents.length;
   
   // Update source counts
@@ -94,7 +115,7 @@ export function addDocument(docInfo) {
     source_website: docInfo.source_website || 'pakistan-code',
     raw_path: docInfo.raw_path || '',
     text_path: docInfo.text_path || null,
-    download_date: docInfo.download_date || new Date().toISOString(),
+    download_date: docInfo.download_date || formatDate(),
     content_type: docInfo.content_type || 'statute',
     section: docInfo.section || null,
     year: docInfo.year || null,
@@ -117,7 +138,7 @@ export function addDocument(docInfo) {
   // Save updated metadata
   saveMetadata(metadata);
   
-  console.log(`✅ Added document to metadata: ${documentEntry.title} (ID: ${docId})`);
+  // Removed console log for cleaner output
   return docId;
 }
 
@@ -137,11 +158,11 @@ export function updateDocument(docId, updates) {
   metadata.documents[docIndex] = {
     ...metadata.documents[docIndex],
     ...updates,
-    last_modified: new Date().toISOString()
+    last_modified: formatDate()
   };
   
   saveMetadata(metadata);
-  console.log(`✅ Updated document: ${docId}`);
+  // Removed console log for cleaner output
   return true;
 }
 

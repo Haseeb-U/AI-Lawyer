@@ -1,0 +1,14 @@
+# Text Extraction Dependencies
+# Tools mentioned in Smart Lawyer proposal
+
+# PyMuPDF - Fast PDF processing and rendering
+PyMuPDF==1.24.13
+
+# pdfminer - PDF text extraction (backup method)
+pdfminer.six==20231228
+
+# Tesseract OCR - For scanned documents
+pytesseract==0.3.13
+
+# PIL/Pillow - Image processing for OCR
+Pillow==10.4.0
