@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Preprocessing utilities for AI-Lawyer (data collection, text extraction)",
-  "scripts": {},
+  "scripts": {
+    "scrape:pakistan-code": "node src/data_collection/pakistan_code_scraper.js"
+  },
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "puppeteer": "^24.25.0"
   }
 }

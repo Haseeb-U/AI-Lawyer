@@ -137,3 +137,31 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# ============================================
+# AI-Lawyer Data Folder
+# ============================================
+# Raw scraped data (Pakistan Code, legal documents, etc.)
+data/raw/**/*
+!data/raw/.gitkeep
+!data/raw/README.md
+
+# Processed text files
+data/text/**/*
+!data/text/.gitkeep
+!data/text/README.md
+
+# Cleaned data
+data/cleaned/**/*
+!data/cleaned/.gitkeep
+!data/cleaned/README.md
+
+# Embeddings (vector files - usually large)
+data/embeddings/**/*
+!data/embeddings/.gitkeep
+!data/embeddings/README.md
+
+# Keep metadata tracked (comment out if files get too large)
+# data/metadata/**/*
+# !data/metadata/.gitkeep
+# !data/metadata/README.md
