@@ -1,0 +1,78 @@
+Main Features of AI-Based Smart Lawyer
+🧠 1. AI Chatbot (RAG-Powered Legal Assistant)
+
+Core Idea:
+A bilingual (English–Urdu) chatbot that answers user questions related to Pakistani civil law using Retrieval-Augmented Generation (RAG).
+
+How it works:
+
+Converts the user’s question into embeddings.
+
+Retrieves relevant legal statutes or judgments from Qdrant (vector DB).
+
+Passes them to Google Gemini 2.5 Flash to generate an answer.
+
+Displays the citations with source names and direct links (e.g., “Civil Procedure Code, Section 9, Pakistan Code link”).
+
+Purpose:
+Provides accurate, verifiable, and explainable legal answers — not just guesses.
+
+🔍 2. Advanced Filtering System
+
+Users can filter search results based on:
+
+Court: Supreme Court, Lahore High Court, etc.
+
+Year: Retrieve judgments from a specific time frame.
+
+Law/Section: Focus on a particular statute (e.g., Contract Act, 1872).
+
+Backend: Uses metadata fields stored with each document in Qdrant & MongoDB Atlas.
+
+Purpose: Helps professionals narrow down results for more precise research.
+
+⚖️ 3. Judgment Summarization
+
+Automatically generates concise summaries of long court judgments.
+
+Approach:
+
+Uses text chunking and summarization via the Gemini model.
+
+Highlights main issues, verdict, and legal principles.
+
+Output Example:
+“In this case, the Supreme Court held that a contract signed under coercion is voidable under Section 15 of the Contract Act.”
+
+📄 4. Contract Summarization (User Upload)
+
+Users can upload or paste contracts, and the system generates:
+
+Summary of key clauses
+
+Detection of risky or unusual terms
+
+Plain-language explanation
+
+Pipeline:
+Upload → Text extraction (PyMuPDF/pdfminer) → Summarization via Gemini API → Display structured summary.
+
+Purpose:
+Helps students or small business owners quickly understand legal documents.
+
+🗣️ 5. Voice Input and Output (Bilingual)
+
+Speech-to-Text:
+
+Accepts voice queries in Urdu or English.
+
+Uses models such as Whisper API or Google Speech Recognition API.
+
+Text-to-Speech:
+
+Converts system responses into spoken Urdu or English (for accessibility).
+
+Uses tools like gTTS (Google Text-to-Speech) or Azure Speech API.
+
+Purpose:
+Enables hands-free interaction, helpful for visually impaired users or those who prefer verbal communication.

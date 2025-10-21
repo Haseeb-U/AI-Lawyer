@@ -1,0 +1,17 @@
+{
+  "name": "ai-lawyer-preprocessing",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Preprocessing utilities for AI-Lawyer (data collection, text extraction)",
+  "scripts": {
+    "scrape:pakistan-code": "node src/data_collection/pakistan_code/download_pakistan_code.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "fs-extra": "^11.2.0",
+    "p-limit": "^5.0.0",
+    "puppeteer": "^24.15.0"
+  }
+}
