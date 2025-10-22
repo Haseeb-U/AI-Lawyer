@@ -18,7 +18,7 @@ import io
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -56,7 +56,6 @@ class TextExtractor:
         
         try:
             # Method 1: Try PyMuPDF first (fastest)
-            logger.info(f"Attempting PyMuPDF extraction for: {pdf_path.name}")
             doc = fitz.open(pdf_path)
             
             for page_num in range(len(doc)):
@@ -68,7 +67,6 @@ class TextExtractor:
                     text_content.append(page_text)
                 else:
                     # Page appears to be scanned - use OCR
-                    logger.info(f"Page {page_num + 1} appears scanned, using OCR...")
                     ocr_text = self._ocr_page(page)
                     if ocr_text:
                         text_content.append(ocr_text)
@@ -78,7 +76,6 @@ class TextExtractor:
             
             # If no text was extracted, try pdfminer as backup
             if not text_content or len(''.join(text_content).strip()) < 50:
-                logger.info(f"Trying pdfminer as backup for: {pdf_path.name}")
                 pdfminer_text = pdfminer_extract(str(pdf_path))
                 if pdfminer_text and len(pdfminer_text.strip()) > 50:
                     text_content = [pdfminer_text]
@@ -95,13 +92,19 @@ class TextExtractor:
         Supports English text only
         """
         try:
-            # Render page as image
-            pix = page.get_pixmap(matrix=fitz.Matrix(300/72, 300/72))  # 300 DPI
+            # Render page as a high-resolution image
+            pix = page.get_pixmap(matrix=fitz.Matrix(400/72, 400/72))  # 400 DPI for better quality
             img_data = pix.tobytes("png")
             image = Image.open(io.BytesIO(img_data))
+
+            # Pre-process the image for better OCR results
+            # Convert to grayscale
+            image = image.convert('L')
             
-            # Perform OCR with English only
-            custom_config = r'--oem 3 --psm 6'
+            # Perform OCR with improved configuration
+            # --psm 4: Assume a single column of text of variable sizes.
+            # --psm 11: Sparse text. Find as much text as possible in no particular order.
+            custom_config = r'--oem 3 --psm 4'
             text = pytesseract.image_to_string(
                 image, 
                 lang='eng',
@@ -145,17 +148,13 @@ class TextExtractor:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(text)
         
-        logger.info(f"✅ Saved text to: {output_path}")
         return output_path
     
     def extract_all(self):
         """Extract text from files that have entries in metadata"""
-        logger.info("=" * 80)
-        logger.info("Starting text extraction process...")
-        logger.info(f"Raw directory: {RAW_DIR}")
-        logger.info(f"Text directory: {TEXT_DIR}")
-        logger.info(f"Metadata file: {METADATA_FILE}")
-        logger.info("=" * 80)
+        print("=" * 80)
+        print("Starting text extraction process...")
+        print("=" * 80)
         
         # Ensure text directory exists
         TEXT_DIR.mkdir(parents=True, exist_ok=True)
@@ -240,36 +239,20 @@ class TextExtractor:
         self.stats['total_files'] = len(files_to_process)
         
         # Print analysis summary
-        logger.info("\n" + "=" * 80)
-        logger.info("📊 EXTRACTION ANALYSIS")
-        logger.info("=" * 80)
-        logger.info(f"Total documents in metadata: {len(metadata.get('documents', []))}")
-        logger.info(f"✅ Already complete: {extraction_reasons['already_complete']}")
-        logger.info(f"📝 Need processing: {self.stats['total_files']}")
-        
-        if self.stats['total_files'] > 0:
-            logger.info("\n📋 Reasons for extraction:")
-            if extraction_reasons['missing text_path'] > 0:
-                logger.info(f"   • Missing text_path: {extraction_reasons['missing text_path']}")
-            if extraction_reasons['status not set to text_extracted'] > 0:
-                logger.info(f"   • Status not text_extracted: {extraction_reasons['status not set to text_extracted']}")
-            if extraction_reasons['processing_status.text_extracted not set to true'] > 0:
-                logger.info(f"   • Processing flag not set: {extraction_reasons['processing_status.text_extracted not set to true']}")
-            if extraction_reasons['text file missing on disk'] > 0:
-                logger.info(f"   • Text file missing: {extraction_reasons['text file missing on disk']}")
-        
-        logger.info("=" * 80 + "\n")
+        print(f"Total documents: {len(metadata.get('documents', []))}")
+        print(f"Already complete: {extraction_reasons['already_complete']}")
+        print(f"Need processing: {self.stats['total_files']}")
+        print("=" * 80)
         
         if self.stats['total_files'] == 0:
-            logger.info("✅ No files need text extraction (all already processed)")
+            print("✅ All files already processed")
             return
         
         # Process each file
         extracted_documents = []
         
         for file_path, doc_metadata in files_to_process:
-            logger.info(f"\nProcessing [{self.stats['successful'] + self.stats['failed'] + 1}/{self.stats['total_files']}]: {file_path.name}")
-            logger.info(f"Title: {doc_metadata.get('title', 'Unknown')}")
+            print(f"Processing [{self.stats['successful'] + self.stats['failed'] + 1}/{self.stats['total_files']}]: {file_path.name}")
             
             # Extract text
             text, ocr_used = self.process_file(file_path)
@@ -323,6 +306,9 @@ class TextExtractor:
                         # Update text_path (existing field)
                         doc['text_path'] = extraction_info['text_file']
                         
+                        # Update extraction_method (new field)
+                        doc['extraction_method'] = extraction_info['extraction_method']
+                        
                         # Update status (existing field)
                         doc['status'] = 'text_extracted'
                         
@@ -331,33 +317,49 @@ class TextExtractor:
                             doc['processing_status']['text_extracted'] = True
                         
                         updated_count += 1
-                        logger.info(f"✅ Updated metadata for: {doc.get('title', 'Unknown')}")
                         break
             
             # Update metadata timestamp
             now = datetime.now()
             metadata['last_updated'] = now.strftime('%Y-%m-%d %I:%M:%S %p')
             
+            # Recalculate extraction statistics for header
+            ocr_count = 0
+            normal_count = 0
+            for doc in metadata['documents']:
+                extraction_method = doc.get('extraction_method')
+                if extraction_method:
+                    if 'OCR' in extraction_method:
+                        ocr_count += 1
+                    elif 'Text' in extraction_method:
+                        normal_count += 1
+            
+            # Update extraction_stats in header
+            metadata['extraction_stats'] = {
+                'ocr_used': ocr_count,
+                'normal_extraction': normal_count
+            }
+            
             # Save updated metadata
             with open(METADATA_FILE, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
             
-            logger.info(f"\n✅ Metadata updated: {METADATA_FILE}")
-            logger.info(f"✅ Updated {updated_count} document entries")
+            print(f"\n✅ Updated {updated_count} document entries in metadata")
+            print(f"📊 Extraction stats: OCR used: {ocr_count}, Normal extraction: {normal_count}")
             
         except Exception as e:
             logger.error(f"Error updating metadata: {str(e)}")
     
     def _print_summary(self):
         """Print extraction summary"""
-        logger.info("\n" + "=" * 80)
-        logger.info("TEXT EXTRACTION SUMMARY")
-        logger.info("=" * 80)
-        logger.info(f"Total files processed: {self.stats['total_files']}")
-        logger.info(f"Successfully extracted: {self.stats['successful']}")
-        logger.info(f"Failed: {self.stats['failed']}")
-        logger.info(f"OCR used for: {self.stats['ocr_used']} files")
-        logger.info("=" * 80)
+        print("\n" + "=" * 80)
+        print("TEXT EXTRACTION SUMMARY")
+        print("=" * 80)
+        print(f"Total files processed: {self.stats['total_files']}")
+        print(f"Successfully extracted: {self.stats['successful']}")
+        print(f"Failed: {self.stats['failed']}")
+        print(f"OCR used for: {self.stats['ocr_used']} files")
+        print("=" * 80)
 
 
 def main():

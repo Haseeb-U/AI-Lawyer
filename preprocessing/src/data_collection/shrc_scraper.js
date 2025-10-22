@@ -333,7 +333,12 @@ async function scrapeSHRC() {
   const stats = getStats();
   console.log('\n📈 METADATA STATISTICS:');
   console.log(`   Total documents: ${stats.total}`);
-  console.log(`   SHRC Sindh documents: ${stats.by_source['shrc-sindh'] || 0}`);
+  const shrcSource = stats.by_source['shrc-sindh'];
+  if (shrcSource) {
+    console.log(`   SHRC Sindh documents: ${shrcSource.count} (${shrcSource.domain || 'domain unknown'})`);
+  } else {
+    console.log(`   SHRC Sindh documents: 0`);
+  }
   console.log('='.repeat(80) + '\n');
 }
 

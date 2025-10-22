@@ -461,7 +461,12 @@ async function scrapePunjabCode() {
   const stats = getStats();
   console.log('\n📈 METADATA STATISTICS:');
   console.log(`   Total documents: ${stats.total}`);
-  console.log(`   Punjab Code documents: ${stats.by_source['punjab-code'] || 0}`);
+  const punjabSource = stats.by_source['punjab-code'];
+  if (punjabSource) {
+    console.log(`   Punjab Code documents: ${punjabSource.count} (${punjabSource.domain || 'domain unknown'})`);
+  } else {
+    console.log(`   Punjab Code documents: 0`);
+  }
   console.log('='.repeat(80) + '\n');
 }
 

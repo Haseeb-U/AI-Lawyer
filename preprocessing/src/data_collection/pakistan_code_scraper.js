@@ -432,7 +432,12 @@ async function scrapePakistanCode() {
   const stats = getStats();
   console.log('\n📈 METADATA STATISTICS:');
   console.log(`   Total documents: ${stats.total}`);
-  console.log(`   Pakistan Code documents: ${stats.by_source['pakistan-code'] || 0}`);
+  const pakistanSource = stats.by_source['pakistan-code'];
+  if (pakistanSource) {
+    console.log(`   Pakistan Code documents: ${pakistanSource.count} (${pakistanSource.domain || 'domain unknown'})`);
+  } else {
+    console.log(`   Pakistan Code documents: 0`);
+  }
   console.log('='.repeat(80) + '\n');
 }
 

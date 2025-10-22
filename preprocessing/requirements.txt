@@ -1,3 +1,23 @@
+# ===============================
+# Environment setup (PowerShell)
+# ===============================
+# 1) Create and activate a virtual environment
+#    Use your default Python (or pick a version explicitly with 'py')
+# python -m venv venv
+# OR (pick a specific version, e.g., Python 3.11)
+# py -3.11 -m venv venv
+#
+# 2) Activate the venv
+# .\venv\Scripts\Activate.ps1
+#
+# 3) Upgrade packaging tools
+# python -m pip install --upgrade pip setuptools wheel
+#
+# 4) Install project dependencies
+# pip install -r requirements.txt
+#
+# 
+
 # Text Extraction Dependencies
 # Tools mentioned in Smart Lawyer proposal
 

@@ -52,12 +52,10 @@ export function initializeMetadata() {
       version: "1.0",
       last_updated: formatDate(),
       total_documents: 0,
-      sources: {
-        "pakistan-code": 0,
-        "supreme-court": 0,
-        "high-court": 0,
-        "gazettes": 0,
-        "other": 0
+      sources: {},
+      extraction_stats: {
+        ocr_used: 0,
+        normal_extraction: 0
       },
       documents: []
     };
@@ -84,13 +82,58 @@ export function saveMetadata(metadata) {
   metadata.last_updated = formatDate();
   metadata.total_documents = metadata.documents.length;
   
-  // Update source counts
+  // Update source counts and domains
   const sourceCounts = {};
+  // Track extraction statistics
+  let ocrUsedCount = 0;
+  let normalExtractionCount = 0;
+  
   metadata.documents.forEach(doc => {
     const source = doc.source_website || 'other';
-    sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+    
+    // Extract domain from source_page or source_url
+    let domain = null;
+    if (doc.source_page || doc.source_url) {
+      try {
+        const url = new URL(doc.source_page || doc.source_url);
+        domain = url.hostname;
+      } catch (e) {
+        // Invalid URL, skip domain extraction
+      }
+    }
+    
+    // Initialize source entry if it doesn't exist
+    if (!sourceCounts[source]) {
+      sourceCounts[source] = {
+        count: 0,
+        domain: domain
+      };
+    }
+    
+    sourceCounts[source].count += 1;
+    
+    // Update domain if not set or if we found a domain
+    if (domain && !sourceCounts[source].domain) {
+      sourceCounts[source].domain = domain;
+    }
+    
+    // Track extraction method statistics
+    if (doc.extraction_method) {
+      if (doc.extraction_method.toLowerCase().includes('ocr')) {
+        ocrUsedCount++;
+      } else if (doc.extraction_method.toLowerCase().includes('text')) {
+        normalExtractionCount++;
+      }
+    }
   });
+  
   metadata.sources = sourceCounts;
+  
+  // Add extraction statistics to metadata header
+  metadata.extraction_stats = {
+    ocr_used: ocrUsedCount,
+    normal_extraction: normalExtractionCount
+  };
   
   fs.writeFileSync(METADATA_FILE, JSON.stringify(metadata, null, 2));
 }
@@ -123,6 +166,7 @@ export function addDocument(docInfo) {
     file_size: docInfo.file_size || null,
     file_format: docInfo.file_format || 'pdf',
     language: docInfo.language || 'english',
+    extraction_method: docInfo.extraction_method || null,
     status: docInfo.status || 'downloaded',
     processing_status: {
       text_extracted: false,
