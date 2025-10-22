@@ -92,7 +92,7 @@ class TextExtractor:
     def _ocr_page(self, page):
         """
         Perform OCR on a PDF page using Tesseract
-        Supports both English and Urdu text
+        Supports English text only
         """
         try:
             # Render page as image
@@ -100,12 +100,11 @@ class TextExtractor:
             img_data = pix.tobytes("png")
             image = Image.open(io.BytesIO(img_data))
             
-            # Perform OCR with Urdu and English support
-            # Tesseract languages: eng (English) + urd (Urdu)
+            # Perform OCR with English only
             custom_config = r'--oem 3 --psm 6'
             text = pytesseract.image_to_string(
                 image, 
-                lang='eng+urd',
+                lang='eng',
                 config=custom_config
             )
             
