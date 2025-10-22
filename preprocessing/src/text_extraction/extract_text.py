@@ -150,29 +150,127 @@ class TextExtractor:
         return output_path
     
     def extract_all(self):
-        """Extract text from all files in raw folder"""
+        """Extract text from files that have entries in metadata"""
         logger.info("=" * 80)
         logger.info("Starting text extraction process...")
         logger.info(f"Raw directory: {RAW_DIR}")
         logger.info(f"Text directory: {TEXT_DIR}")
+        logger.info(f"Metadata file: {METADATA_FILE}")
         logger.info("=" * 80)
         
         # Ensure text directory exists
         TEXT_DIR.mkdir(parents=True, exist_ok=True)
         
-        # Find all supported files
+        # Load metadata to get list of files to process
+        if not METADATA_FILE.exists():
+            logger.error(f"❌ Metadata file not found: {METADATA_FILE}")
+            logger.error("Please run the scrapers first to generate metadata.")
+            return
+        
+        try:
+            with open(METADATA_FILE, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+        except Exception as e:
+            logger.error(f"❌ Error loading metadata: {str(e)}")
+            return
+        
+        # Get files from metadata that need text extraction
         files_to_process = []
-        for ext in SUPPORTED_EXTENSIONS:
-            files_to_process.extend(RAW_DIR.rglob(f'*{ext}'))
+        extraction_reasons = {
+            'missing text_path': 0,
+            'status not set to text_extracted': 0,
+            'processing_status.text_extracted not set to true': 0,
+            'text file missing on disk': 0,
+            'already_complete': 0
+        }
+        
+        for doc in metadata.get('documents', []):
+            # Check if extraction fields are complete
+            text_path = doc.get('text_path')
+            status = doc.get('status')
+            processing_status = doc.get('processing_status', {})
+            text_extracted_flag = processing_status.get('text_extracted', False)
+            
+            # Determine if file needs (re)extraction
+            needs_extraction = False
+            reason = ""
+            
+            if not text_path or text_path == 'null':
+                needs_extraction = True
+                reason = "missing text_path"
+            elif status != 'text_extracted':
+                needs_extraction = True
+                reason = "status not set to text_extracted"
+            elif not text_extracted_flag:
+                needs_extraction = True
+                reason = "processing_status.text_extracted not set to true"
+            elif text_path:
+                # Check if text file actually exists
+                text_file_path = BASE_DIR / text_path
+                if not text_file_path.exists():
+                    needs_extraction = True
+                    reason = "text file missing on disk"
+            
+            if not needs_extraction:
+                extraction_reasons['already_complete'] += 1
+                continue
+            
+            # Track reason
+            extraction_reasons[reason] += 1
+            
+            # Get raw file path
+            raw_path = doc.get('raw_path')
+            if not raw_path:
+                logger.warning(f"⚠️  No raw_path found for: {doc.get('title', 'Unknown')}")
+                continue
+            
+            # Convert to absolute path
+            file_path = BASE_DIR / raw_path
+            
+            # Check if file exists
+            if not file_path.exists():
+                logger.warning(f"⚠️  File not found: {file_path}")
+                continue
+            
+            # Check if file extension is supported
+            if file_path.suffix.lower() in SUPPORTED_EXTENSIONS:
+                files_to_process.append((file_path, doc))
+            else:
+                logger.warning(f"⚠️  Unsupported file type: {file_path.suffix} for {file_path.name}")
         
         self.stats['total_files'] = len(files_to_process)
-        logger.info(f"Found {self.stats['total_files']} files to process")
+        
+        # Print analysis summary
+        logger.info("\n" + "=" * 80)
+        logger.info("📊 EXTRACTION ANALYSIS")
+        logger.info("=" * 80)
+        logger.info(f"Total documents in metadata: {len(metadata.get('documents', []))}")
+        logger.info(f"✅ Already complete: {extraction_reasons['already_complete']}")
+        logger.info(f"📝 Need processing: {self.stats['total_files']}")
+        
+        if self.stats['total_files'] > 0:
+            logger.info("\n📋 Reasons for extraction:")
+            if extraction_reasons['missing text_path'] > 0:
+                logger.info(f"   • Missing text_path: {extraction_reasons['missing text_path']}")
+            if extraction_reasons['status not set to text_extracted'] > 0:
+                logger.info(f"   • Status not text_extracted: {extraction_reasons['status not set to text_extracted']}")
+            if extraction_reasons['processing_status.text_extracted not set to true'] > 0:
+                logger.info(f"   • Processing flag not set: {extraction_reasons['processing_status.text_extracted not set to true']}")
+            if extraction_reasons['text file missing on disk'] > 0:
+                logger.info(f"   • Text file missing: {extraction_reasons['text file missing on disk']}")
+        
+        logger.info("=" * 80 + "\n")
+        
+        if self.stats['total_files'] == 0:
+            logger.info("✅ No files need text extraction (all already processed)")
+            return
         
         # Process each file
         extracted_documents = []
         
-        for file_path in files_to_process:
-            logger.info(f"\nProcessing: {file_path.name}")
+        for file_path, doc_metadata in files_to_process:
+            logger.info(f"\nProcessing [{self.stats['successful'] + self.stats['failed'] + 1}/{self.stats['total_files']}]: {file_path.name}")
+            logger.info(f"Title: {doc_metadata.get('title', 'Unknown')}")
             
             # Extract text
             text, ocr_used = self.process_file(file_path)
@@ -181,20 +279,18 @@ class TextExtractor:
                 # Save text file
                 output_path = self.save_text(text, file_path, TEXT_DIR)
                 
-                # Create metadata entry
-                doc_metadata = {
-                    'original_file': str(file_path.relative_to(BASE_DIR)),
+                # Store extraction info to update metadata later
+                extraction_info = {
+                    'document_id': doc_metadata.get('id'),
+                    'source_url': doc_metadata.get('source_url'),
                     'text_file': str(output_path.relative_to(BASE_DIR)),
-                    'file_name': file_path.name,
-                    'file_size': file_path.stat().st_size,
                     'extracted_at': datetime.now().isoformat(),
                     'extraction_method': 'OCR + Text' if ocr_used else 'Text Only',
                     'text_length': len(text),
-                    'word_count': len(text.split()),
-                    'status': 'extracted'
+                    'word_count': len(text.split())
                 }
                 
-                extracted_documents.append(doc_metadata)
+                extracted_documents.append(extraction_info)
                 self.stats['successful'] += 1
             else:
                 logger.warning(f"❌ Failed to extract text from: {file_path.name}")
@@ -207,36 +303,39 @@ class TextExtractor:
         self._print_summary()
     
     def _update_metadata(self, extracted_documents):
-        """Update the centralized metadata file"""
+        """Update the centralized metadata file - only updates existing fields"""
+        if not extracted_documents:
+            logger.info("No documents to update in metadata")
+            return
+            
         try:
             # Load existing metadata
-            if METADATA_FILE.exists():
-                with open(METADATA_FILE, 'r', encoding='utf-8') as f:
-                    metadata = json.load(f)
-            else:
-                logger.error("Metadata file not found!")
-                return
+            with open(METADATA_FILE, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
             
-            # Update existing documents with text_path and processing status
-            for extracted_doc in extracted_documents:
-                # Find matching document by raw_path
+            # Update documents with text extraction info
+            updated_count = 0
+            for extraction_info in extracted_documents:
+                # Find matching document by source_url (unique identifier)
+                source_url = extraction_info.get('source_url')
+                
                 for doc in metadata['documents']:
-                    raw_path = doc.get('raw_path', '').replace('\\', '/')
-                    original_file = extracted_doc['original_file'].replace('\\', '/')
-                    
-                    if raw_path in original_file or original_file.endswith(Path(raw_path).name):
-                        # Update text_path
-                        doc['text_path'] = extracted_doc['text_file']
+                    if doc.get('source_url') == source_url:
+                        # Update text_path (existing field)
+                        doc['text_path'] = extraction_info['text_file']
                         
-                        # Update processing status
-                        if 'processing_status' not in doc:
-                            doc['processing_status'] = {}
-                        doc['processing_status']['text_extracted'] = True
+                        # Update status (existing field)
+                        doc['status'] = 'text_extracted'
                         
-                        logger.info(f"✅ Updated metadata for: {doc['title']}")
+                        # Update processing_status.text_extracted (existing field)
+                        if 'processing_status' in doc:
+                            doc['processing_status']['text_extracted'] = True
+                        
+                        updated_count += 1
+                        logger.info(f"✅ Updated metadata for: {doc.get('title', 'Unknown')}")
                         break
             
-            # Update metadata timestamp with better format
+            # Update metadata timestamp
             now = datetime.now()
             metadata['last_updated'] = now.strftime('%Y-%m-%d %I:%M:%S %p')
             
@@ -245,6 +344,7 @@ class TextExtractor:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
             
             logger.info(f"\n✅ Metadata updated: {METADATA_FILE}")
+            logger.info(f"✅ Updated {updated_count} document entries")
             
         except Exception as e:
             logger.error(f"Error updating metadata: {str(e)}")

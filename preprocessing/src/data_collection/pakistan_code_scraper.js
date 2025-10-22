@@ -16,6 +16,9 @@ import {
   initializeMetadata, 
   addDocument, 
   documentExists,
+  getDocumentBySourceUrl,
+  validateDocumentEntry,
+  updateDocumentFields,
   getStats 
 } from '../utils/metadata_manager.js';
 
@@ -166,6 +169,11 @@ async function scrapePakistanCode() {
   let totalDownloaded = 0;
   let totalSkipped = 0;
   let totalErrors = 0;
+  let totalUpdated = 0;
+  let totalRedownloaded = 0;
+  
+  // Base directory for validation
+  const BASE_DIR = path.resolve(__dirname, '../../..');
   
   try {
     // Launch browser in visible mode
@@ -191,6 +199,8 @@ async function scrapePakistanCode() {
       let downloadedCount = 0;
       let skippedCount = 0;
       let errorCount = 0;
+      let updatedCount = 0;
+      let redownloadedCount = 0;
       
       try {
         await page.goto(categoryUrl, { waitUntil: 'networkidle2', timeout: 60000 });
@@ -269,10 +279,32 @@ async function scrapePakistanCode() {
                   ? pdfLink.url 
                   : `${CONFIG.baseUrl}${pdfLink.url}`;
             
-                // Check if already downloaded
+                // Check if document exists and validate it
+                let shouldDownload = false;
+                let isUpdate = false;
+                
                 if (documentExists(pdfUrl)) {
-                  skippedCount++;
-                  continue;
+                  // Document exists, validate it
+                  const validation = validateDocumentEntry(pdfUrl, BASE_DIR);
+                  
+                  if (validation.isValid) {
+                    // Document is valid and file exists, skip
+                    skippedCount++;
+                    continue;
+                  } else {
+                    // Document needs update or re-download
+                    isUpdate = true;
+                    shouldDownload = validation.needsRedownload;
+                    
+                    if (validation.needsRedownload) {
+                      console.log(`\n🔄 Re-downloading "${lawLink.title}": ${validation.reason}`);
+                    } else if (validation.missingFields.length > 0) {
+                      console.log(`\n🔧 Updating metadata for "${lawLink.title}": missing fields [${validation.missingFields.join(', ')}]`);
+                    }
+                  }
+                } else {
+                  // New document, download it
+                  shouldDownload = true;
                 }
             
                 try {
@@ -287,20 +319,25 @@ async function scrapePakistanCode() {
               
                   const filepath = path.join(CONFIG.downloadDir, filename);
               
-                  // Download the PDF
-                  await downloadFile(pdfUrl, filepath);
+                  // Download the PDF if needed
+                  if (shouldDownload) {
+                    await downloadFile(pdfUrl, filepath);
+                    if (isUpdate) {
+                      redownloadedCount++;
+                    }
+                  }
               
-                  // Get file size
+                  // Get file size (from existing or newly downloaded file)
                   const stats = fs.statSync(filepath);
               
                   // Extract metadata from document title (law page title)
                   const year = extractYear(documentTitle);
                   const section = extractSection(documentTitle);
               
-                  // Add to metadata
-                  addDocument({
+                  // Prepare document data
+                  const docData = {
                     title: documentTitle,
-                    source_page: lawLink.url,  // URL of the HTML page where PDF link was found
+                    source_page: lawLink.url,
                     source_url: pdfUrl,
                     source_website: CONFIG.sourceWebsite,
                     raw_path: path.relative(path.resolve(__dirname, '../../../'), filepath),
@@ -314,20 +351,27 @@ async function scrapePakistanCode() {
                     file_format: 'pdf',
                     language: 'english',
                     status: 'downloaded'
-                  });
-              
-                  downloadedCount++;
+                  };
                   
-                  // Show progress every 10 downloads
-                  if (downloadedCount % 10 === 0) {
-                    process.stdout.write(`\r📥 Progress: ${downloadedCount} downloaded | ${skippedCount} skipped`);
+                  // Add new document or update existing
+                  if (isUpdate) {
+                    updateDocumentFields(pdfUrl, docData);
+                    updatedCount++;
+                  } else {
+                    addDocument(docData);
+                    downloadedCount++;
+                  }
+              
+                  // Show progress every 10 downloads/updates
+                  if ((downloadedCount + updatedCount) % 10 === 0) {
+                    process.stdout.write(`\r📥 Progress: ${downloadedCount} new | ${updatedCount} updated | ${skippedCount} skipped`);
                   }
               
                   // Small delay between downloads
                   await wait(CONFIG.delay);
               
                 } catch (downloadError) {
-                  console.error(`\n❌ Error downloading "${lawLink.title}": ${downloadError.message}`);
+                  console.error(`\n❌ Error processing "${lawLink.title}": ${downloadError.message}`);
                   errorCount++;
                 }
               }
@@ -347,8 +391,10 @@ async function scrapePakistanCode() {
         
         // Clear progress line and print category summary
         process.stdout.write('\r' + ' '.repeat(80) + '\r');
-        console.log(`✅ Category ${catIndex + 1} complete: ${downloadedCount} downloaded | ${skippedCount} skipped | ${errorCount} errors`);
+        console.log(`✅ Category ${catIndex + 1} complete: ${downloadedCount} new | ${updatedCount} updated | ${skippedCount} skipped | ${errorCount} errors`);
         totalDownloaded += downloadedCount;
+        totalUpdated += updatedCount;
+        totalRedownloaded += redownloadedCount;
         totalSkipped += skippedCount;
         totalErrors += errorCount;
         
@@ -375,8 +421,10 @@ async function scrapePakistanCode() {
   console.log('📊 FINAL SCRAPING SUMMARY');
   console.log('='.repeat(80));
   console.log(`📚 Total categories scraped: ${CONFIG.categoryUrls.length}`);
-  console.log(`✅ Successfully downloaded: ${totalDownloaded} files`);
-  console.log(`⏭️  Skipped (already exists): ${totalSkipped} files`);
+  console.log(`✅ New downloads: ${totalDownloaded} files`);
+  console.log(`🔄 Re-downloaded (missing files): ${totalRedownloaded} files`);
+  console.log(`🔧 Metadata updated: ${totalUpdated} entries`);
+  console.log(`⏭️  Skipped (already valid): ${totalSkipped} files`);
   console.log(`❌ Errors encountered: ${totalErrors}`);
   console.log(`📁 Download directory: ${CONFIG.downloadDir}`);
   
