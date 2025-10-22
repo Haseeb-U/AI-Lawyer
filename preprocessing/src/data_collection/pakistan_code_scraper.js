@@ -134,9 +134,12 @@ function downloadFile(url, filepath) {
 
 /**
  * Extract year from text using regex
+ * Supports years from 1800s onwards (1800-2099)
  */
 function extractYear(text) {
-  const yearMatch = text.match(/\b(19|20)\d{2}\b/);
+  // Match 4-digit years from 1800-2099
+  // This covers historical acts from 1800s and modern legislation
+  const yearMatch = text.match(/\b(1[8-9]\d{2}|20\d{2})\b/);
   return yearMatch ? parseInt(yearMatch[0]) : null;
 }
 
@@ -291,7 +294,7 @@ async function scrapePakistanCode() {
                   const stats = fs.statSync(filepath);
               
                   // Extract metadata from document title (law page title)
-                  // const year = extractYear(documentTitle);
+                  const year = extractYear(documentTitle);
                   const section = extractSection(documentTitle);
               
                   // Add to metadata
@@ -305,7 +308,7 @@ async function scrapePakistanCode() {
                     download_date: null, // Will be set by metadata_manager with proper format
                     content_type: 'statute',
                     section: section,
-                    year: null, // Year extraction commented out
+                    year: year,
                     court: null,
                     file_size: stats.size,
                     file_format: 'pdf',
