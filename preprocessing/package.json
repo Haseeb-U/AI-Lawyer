@@ -9,9 +9,11 @@
     "scrape:punjab-code": "node src/data_collection/punjab_code_scraper.js",
     "scrape:shrc": "node src/data_collection/shrc_scraper.js",
     "scrape:balochistan-code": "node src/data_collection/balochistan_code_scraper.js",
-    "scrape:kp-code": "node src/data_collection/kp_code_scraper.js"
+    "scrape:kp-code": "node src/data_collection/kp_code_scraper.js",
+    "scrape:supremecourt": "node src/data_collection/supremecourt_scraper.js"
   },
   "dependencies": {
+    "axios": "^1.7.9",
     "cheerio": "^1.0.0-rc.12",
     "puppeteer": "^24.25.0"
   }
