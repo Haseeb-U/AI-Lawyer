@@ -1,0 +1,13 @@
+the four core modules of AI-Based Smart Lawyer are:
+
+AI Chatbot with Accurate Citations:
+Answers user queries using RAG, with verifiable citations linked to the original legal sources.
+
+Judgment Summarization:
+Automatically summarizes lengthy court judgments into concise, plain-language explanations.
+
+Contract Summarization:
+Allows users to upload contracts; the system extracts, analyzes, and summarizes key clauses and risks.
+
+Legal Search (Laws & Judgments):
+Enables users to search civil laws and judgments directly, with links to the authentic sources (Pakistan Code, court portals, etc.).

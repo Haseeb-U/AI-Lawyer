@@ -1,263 +1,276 @@
-AI-Based Smart Lawyer – Full FYP Roadmap
-⚙️ Phase 1: Planning & Setup (Week 1 – 3)
+AI-Based Smart Lawyer — One-Year FYP Detailed Plan (12 Months / 40 Weeks)
+🎯 Core Objective
 
-Objectives:
+To design and develop a bilingual (English–Urdu) AI-powered civil law assistant capable of:
 
-Finalize scope & features
+Answering legal queries with accurate citations linked to authentic sources
 
-Set up development environment
+Providing judgment and contract summarization
 
-Choose tools, frameworks, and accounts
+Offering semantic legal search across laws and judgments
+
+Enabling bilingual voice and text interaction
+
+📅 Phase 1: Project Initiation & Planning (Weeks 1–4)
+
+Objective: Establish the project’s foundation, tools, and scope.
 
 Tasks:
 
-Clarify scope
+Finalize problem statement, objectives, and scope (Civil Law only).
 
-Core features: RAG chatbot, citation display, filtering, summaries, voice I/O
+Define all 4 core modules and assign group responsibilities.
 
-Focus domain: Pakistani Civil Law only
+Set up environment:
 
-Setup accounts & tools
+Node.js, React.js, MongoDB, Python
 
-Hugging Face (Embeddings)
-
-Google Gemini API
-
-MongoDB Atlas
-
-Qdrant Cloud
+Qdrant Cloud, Hugging Face API, Google Gemini API
 
 GitHub for version control
 
-Environment setup
+Create base folder structure:
 
-Install Node.js, Python, React, MongoDB client, VS Code
+/frontend  /backend  /data/raw  /data/clean  /scripts
 
-Create project skeleton
 
-Backend folder (Node + Express)
-
-Frontend folder (React + Tailwind CSS)
-
-Python scripts folder (for data preprocessing)
-
-Document everything (README + setup notes)
+Write initial documentation (README, architecture overview).
 
 Deliverables:
 
 GitHub repo initialized
 
-Basic README with tech stack & goals
+Environment setup verified
 
-Local dev environment ready
+System architecture draft + Gantt chart
 
-📚 Phase 2: Data Collection (Week 4 – 8)
+Project proposal finalized for supervisor approval
 
-Objectives:
-Collect all relevant legal texts for your system to learn from.
+📘 Phase 2: Data Collection (Weeks 5–10)
 
-Tasks:
-
-Scrape or download:
-
-Pakistan Code (Civil Procedure Code, Contract Act, Limitation Act, etc.)
-
-Provincial Gazettes (Sindh, Punjab, KP, Balochistan)
-
-Supreme Court & High Court judgments (HTML + PDF)
-
-Handle PDFs/Scans:
-
-Use Tesseract OCR for Urdu/English scanned texts.
-
-Use PyMuPDF or pdfminer for digital PDFs.
-
-Organize data:
-
-/data/raw – unprocessed
-
-/data/clean – after cleaning
-
-Maintain CSV/JSON log with file names + sources
-
-Deliverables:
-
-Minimum 200 documents collected
-
-Data directory structured
-
-Small sample file parsed successfully
-
-🧹 Phase 3: Data Preprocessing + Metadata Extraction (Week 9 – 12)
-
-Objectives:
-Clean and structure your raw data for embedding.
+Objective: Gather a large, authentic corpus of Pakistani civil law data.
 
 Tasks:
 
-Clean text:
+Collect from official sources:
 
-Remove headers, footers, page numbers, and formatting junk.
+Pakistan Code: Civil Procedure Code, Contract Act, Limitation Act, etc.
 
-Chunking:
+Provincial Gazettes: Punjab, Sindh, KP, Balochistan.
 
-Split into sections/paragraphs (~300–500 tokens).
+Judgment Portals: Supreme Court + all High Courts.
 
-Auto-Extract Metadata:
+Handle both PDF and HTML formats:
 
-Use Regex + spaCy or custom scripts to detect:
+Use Cheerio/Puppeteer for HTML scraping.
 
-Court, Year, Case Title, Section #
+Use Tesseract OCR for scanned Urdu/English documents.
 
-Store results in JSON:
+Use PyMuPDF/pdfminer for digital text extraction.
 
-{
-  "chunk": "Judgment text…",
-  "metadata": {"court":"Supreme Court","year":2020}
-}
+Maintain metadata log (court, year, case name, file path).
 
+Organize clean directory structure.
 
 Deliverables:
 
-Preprocessed dataset with structured JSON
+Minimum 200+ documents (laws + judgments) collected
 
-Metadata extraction script tested
+CSV/JSON log of all sources
 
-🧮 Phase 4: Embedding & Vector Database Setup (Week 13 – 16)
+Sample OCR and parsing tested successfully
 
-Objectives:
-Convert text into embeddings and store in Qdrant for semantic retrieval.
+🧹 Phase 3: Preprocessing & Metadata Structuring (Weeks 11–14)
+
+Objective: Clean, segment, and structure text for embedding.
 
 Tasks:
 
-Generate embeddings with Hugging Face model
+Remove unwanted formatting (headers, page numbers, etc.)
 
-e.g. paraphrase-multilingual-MiniLM-L12-v2
+Chunk long texts into 300–500 token segments.
 
-Connect to Qdrant Cloud or local instance.
+Auto-extract metadata using Regex + spaCy:
 
-Store each chunk’s vector + metadata.
+Court, year, title, section numbers.
 
-Test similarity queries manually.
+Store output as JSON:
+
+{"chunk": "text...", "metadata": {"court":"Supreme Court", "year":2021}}
+
+
+Validate with manual checks.
 
 Deliverables:
 
-Working vector DB
+Structured JSON dataset
 
-Verified semantic search (retrieves similar legal chunks)
+Preprocessing pipeline automated (Python script)
 
-🤖 Phase 5: RAG Pipeline Integration (Week 17 – 22)
+Verified metadata accuracy ≥90%
 
-Objectives:
-Connect your vector DB, backend API, and Gemini LLM.
+🧮 Phase 4: Embedding Generation & Vector Database (Weeks 15–18)
+
+Objective: Convert cleaned text into embeddings for semantic retrieval.
 
 Tasks:
 
-Backend (Node.js + Express):
+Use Hugging Face paraphrase-multilingual-MiniLM-L12-v2 model.
 
-Endpoint /ask takes user query.
+Generate bilingual embeddings (Urdu + English).
 
-Generates query embeddings.
+Store in Qdrant vector database along with metadata.
 
-Retrieves top K chunks from Qdrant.
+Test retrieval similarity (Top-K search).
 
-Sends context to Gemini API → returns answer.
-
-Include citations:
-
-Append sources (section, judgment URL) to response.
-
-LangChain or Custom RAG:
-
-Use LangChain for simpler orchestration.
+Integrate with MongoDB for user logs.
 
 Deliverables:
 
-RAG working end-to-end in Postman
+Vector database operational
 
-Answer with transparent citation output
+Embeddings successfully stored and retrieved
 
-💻 Phase 6: Frontend Development (Week 23 – 28)
+Semantic search demo (via Postman or console)
 
-Objectives:
-Create the web interface.
+🤖 Phase 5: RAG Pipeline Development (Weeks 19–24)
+
+Objective: Implement the Retrieval-Augmented Generation (RAG) system.
 
 Tasks:
 
-UI design (React + Tailwind):
+Build backend (Node.js + Express) APIs:
 
-Chat window (UI)
+/ask: user query → embeddings → retrieve chunks → send to Gemini → return response.
 
-Filters (court, year)
+Use LangChain or custom pipeline to orchestrate flow.
 
-Results with citations and source links
+Append citations (law section, URL, judgment name) to output.
 
-APIs integration with backend.
+Validate answers for factual accuracy.
 
-Add contract upload & summary feature.
+Internal testing with sample questions:
 
-Add speech I/O:
+“What is the limitation period for filing an appeal?”
 
-Speech-to-Text (Whisper API / Google Speech).
-
-Text-to-Speech (gTTS or Azure Speech).
+“Explain Section 9 of Civil Procedure Code.”
 
 Deliverables:
 
-Fully functional bilingual UI
+Fully working RAG backend
 
-Voice query and response demo
+API tested in Postman with citations
 
-🧪 Phase 7: Testing & Evaluation (Week 29 – 32)
+Logs stored in MongoDB
 
-Objectives:
-Ensure accuracy, performance, and usability.
+💻 Phase 6: Frontend Development & Module Integration (Weeks 25–32)
+
+Objective: Build an intuitive web interface and integrate all four core modules.
+
+Modules to Implement:
+
+AI Chatbot (RAG) — bilingual, citation-linked answers.
+
+Judgment Summarization — summarization via Gemini API.
+
+Contract Summarization — file upload → text extraction → summary.
+
+Legal Search — search by keyword, section, year, or court with source links.
 
 Tasks:
 
-Functional Testing: APIs, frontend, uploads.
+Build UI using React + Tailwind CSS.
 
-Accuracy Testing: Precision, Recall, F1 ≥ 85%.
+Integrate filters and chat interface.
 
-Performance Testing: Response time < 5 s.
+Add upload feature for contracts (PyMuPDF backend).
 
-User Testing: Law students / faculty feedback.
+Implement Voice Input/Output using Whisper / gTTS.
+
+Connect frontend ↔ backend via REST APIs.
+
+Add user-friendly display for citations and source URLs.
 
 Deliverables:
 
-Testing report with metrics
+Fully functional bilingual web app
 
-User feedback summary
+Chatbot + summarization working with citations
 
-📘 Phase 8: Documentation & Finalization (Week 33 – 40)
+Voice query demo ready for presentation
 
-Objectives:
-Prepare submission materials.
+🧪 Phase 7: Testing, Evaluation & Optimization (Weeks 33–36)
+
+Objective: Ensure reliability, accuracy, and usability.
+
+Testing Types:
+
+Functional: Frontend + backend + DB + APIs.
+
+Accuracy: Target ≥85% precision/recall in retrieval and summarization.
+
+Performance: Response time < 5 seconds.
+
+User Testing: Law students, faculty, and practitioners.
+
+Deliverables:
+
+Comprehensive testing report
+
+User feedback form summary
+
+Optimization plan (e.g., caching frequent queries)
+
+📑 Phase 8: Documentation, Report & Finalization (Weeks 37–40)
+
+Objective: Prepare all materials for final submission and presentation.
 
 Tasks:
 
-Final FYP report (chapters 1–5).
+Write detailed final report (Abstract → Methodology → Results → Conclusion).
 
-Create demo video + presentation slides.
+Create presentation slides and system architecture diagrams.
 
-Prepare system architecture diagram, flowcharts, UML.
+Record short demo video of the system.
 
-Backup repo and deployment links (Vercel + Render).
+Deploy:
+
+Frontend → Vercel
+
+Backend → Render
+
+DBs → Qdrant Cloud + MongoDB Atlas
+
+Backup all project files and documentation on GitHub.
 
 Deliverables:
 
-Final report (PDF)
+Final report (Word + PDF)
 
-Viva presentation slides
+Viva-ready presentation slides
 
-Deployed Smart Lawyer demo
+Fully deployed Smart Lawyer web app
+
+Demo video + supervisor submission
 
 🧱 Tech Stack Summary
-Layer	Tool / Framework	Role
-Frontend	React + Tailwind CSS	Chat UI, voice I/O
-Backend	Node.js + Express	RAG logic, APIs
-Database	Qdrant (Vector) + MongoDB Atlas	Semantic search + logs
-LLM	Google Gemini 2.5 Flash	Answer generation + summaries
-Embeddings	Hugging Face MiniLM	Semantic representation
-Preprocessing	Python (Tesseract, PyMuPDF, Regex)	Cleaning + metadata extraction
-Hosting	Vercel (frontend), Render (backend)	Deployment
+Layer	Tool / Framework	Purpose
+Frontend	React + Tailwind	Chat UI, filters, voice I/O
+Backend	Node.js + Express	RAG pipeline, APIs
+Databases	Qdrant + MongoDB Atlas	Semantic search + metadata
+LLM	Google Gemini 2.5 Flash	Answer generation & summarization
+Embeddings	Hugging Face MiniLM	Multilingual embeddings
+Preprocessing	Python (Tesseract, PyMuPDF, Regex)	OCR + cleaning
+Hosting	Vercel + Render	Deployment
+Version Control	GitHub	Collaboration
+🎓 Expected Outcome
+
+By the end of the FYP, you will deliver a production-ready bilingual legal assistant that:
+
+Understands and responds to Pakistani civil law queries accurately.
+
+Provides authentic citations linked to legal sources.
+
+Summarizes judgments and contracts in plain language.
+
+Supports semantic legal search and voice-based interaction.
