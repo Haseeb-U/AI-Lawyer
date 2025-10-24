@@ -32,15 +32,20 @@ METADATA_FILE = BASE_DIR / "data" / "metadata" / "documents_metadata.json"
 # Supported file extensions
 SUPPORTED_EXTENSIONS = ['.pdf']
 
+# OCR Configuration
+ENABLE_OCR = False  # Set to False to skip files that require OCR
+
 
 class TextExtractor:
     """Handles text extraction from various document formats"""
     
-    def __init__(self):
+    def __init__(self, enable_ocr=ENABLE_OCR):
+        self.enable_ocr = enable_ocr
         self.stats = {
             'total_files': 0,
             'successful': 0,
             'failed': 0,
+            'skipped_ocr': 0,
             'ocr_used': 0
         }
     
@@ -49,10 +54,11 @@ class TextExtractor:
         Extract text from PDF using multiple methods
         1. Try PyMuPDF (fast, good for digital PDFs)
         2. Fall back to pdfminer if needed
-        3. Use OCR for scanned pages
+        3. Use OCR for scanned pages (if enabled)
         """
         text_content = []
         ocr_used = False
+        has_scanned_pages = False
         
         try:
             # Method 1: Try PyMuPDF first (fastest)
@@ -66,19 +72,34 @@ class TextExtractor:
                 if page_text.strip():
                     text_content.append(page_text)
                 else:
-                    # Page appears to be scanned - use OCR
-                    ocr_text = self._ocr_page(page)
-                    if ocr_text:
-                        text_content.append(ocr_text)
-                        ocr_used = True
+                    # Page appears to be scanned
+                    has_scanned_pages = True
+                    
+                    if self.enable_ocr:
+                        # Use OCR if enabled
+                        ocr_text = self._ocr_page(page)
+                        if ocr_text:
+                            text_content.append(ocr_text)
+                            ocr_used = True
+                    else:
+                        # Skip this page if OCR is disabled
+                        logger.info(f"Skipping scanned page {page_num + 1} in {pdf_path.name} (OCR disabled)")
             
             doc.close()
+            
+            # If OCR is disabled and file has scanned pages but no extractable text, return None
+            if has_scanned_pages and not self.enable_ocr and not text_content:
+                logger.warning(f"Skipping {pdf_path.name} - requires OCR but OCR is disabled")
+                return None, False
             
             # If no text was extracted, try pdfminer as backup
             if not text_content or len(''.join(text_content).strip()) < 50:
                 pdfminer_text = pdfminer_extract(str(pdf_path))
                 if pdfminer_text and len(pdfminer_text.strip()) > 50:
                     text_content = [pdfminer_text]
+                elif has_scanned_pages and not self.enable_ocr:
+                    # File needs OCR but OCR is disabled
+                    return None, False
             
             return '\n\n'.join(text_content), ocr_used
             
@@ -154,6 +175,7 @@ class TextExtractor:
         """Extract text from files that have entries in metadata"""
         print("=" * 80)
         print("Starting text extraction process...")
+        print(f"OCR Enabled: {self.enable_ocr}")
         print("=" * 80)
         
         # Ensure text directory exists
@@ -274,6 +296,10 @@ class TextExtractor:
                 
                 extracted_documents.append(extraction_info)
                 self.stats['successful'] += 1
+            elif text is None and not self.enable_ocr:
+                # File was skipped because it requires OCR
+                logger.info(f"⏭️  Skipped (requires OCR): {file_path.name}")
+                self.stats['skipped_ocr'] += 1
             else:
                 logger.warning(f"❌ Failed to extract text from: {file_path.name}")
                 self.stats['failed'] += 1
@@ -355,9 +381,12 @@ class TextExtractor:
         print("\n" + "=" * 80)
         print("TEXT EXTRACTION SUMMARY")
         print("=" * 80)
+        print(f"OCR Enabled: {self.enable_ocr}")
         print(f"Total files processed: {self.stats['total_files']}")
         print(f"Successfully extracted: {self.stats['successful']}")
         print(f"Failed: {self.stats['failed']}")
+        if not self.enable_ocr:
+            print(f"Skipped (requires OCR): {self.stats['skipped_ocr']}")
         print(f"OCR used for: {self.stats['ocr_used']} files")
         print("=" * 80)
 
