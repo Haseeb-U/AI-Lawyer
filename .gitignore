@@ -164,6 +164,11 @@ data/cleaned/**/*
 !data/cleaned/.gitkeep
 !data/cleaned/README.md
 
+# Chunks (JSON files)
+data/chunks/**/*
+!data/chunks/.gitkeep
+!data/chunks/README.md
+
 # Embeddings (vector files - usually large)
 data/embeddings/**/*
 !data/embeddings/.gitkeep
