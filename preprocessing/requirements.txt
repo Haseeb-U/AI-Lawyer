@@ -16,6 +16,15 @@
 # 4) Install project dependencies
 # pip install -r requirements.txt
 #
+#
+# ===============================
+# IMPORTANT: NumPy version for Python 3.13+
+# ===============================
+# If you are using Python 3.13 or newer, use numpy>=2.0.0 (e.g., numpy==2.3.4).
+# If you get errors installing numpy, try:
+#   pip install numpy==2.3.4 --only-binary=:all:
+# before running pip install -r requirements.txt
+# For older Python versions, use numpy==1.26.4
 # 
 
 # Text Extraction Dependencies
@@ -32,3 +41,23 @@ pytesseract==0.3.13
 
 # PIL/Pillow - Image processing for OCR
 Pillow==10.4.0
+
+# ===============================
+# Embedding Generation Dependencies
+# ===============================
+# Sentence Transformers (for embeddings)
+sentence-transformers==2.6.1
+# PyTorch (required by sentence-transformers)
+torch==2.9.0
+# NumPy (used in embedding code)
+numpy==2.3.4
+
+# ===============================
+# Vector DB & Metadata Upload Dependencies
+# ===============================
+# Qdrant client (vector DB)
+qdrant-client==1.7.3
+# MongoDB client
+pymongo==4.7.2
+# dotenv for environment variables
+python-dotenv==1.0.1

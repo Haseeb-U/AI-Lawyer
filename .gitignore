@@ -170,9 +170,9 @@ data/chunks/**/*
 !data/chunks/README.md
 
 # Embeddings (vector files - usually large)
-data/embeddings/**/*
-!data/embeddings/.gitkeep
-!data/embeddings/README.md
+# data/embeddings/**/*
+# !data/embeddings/.gitkeep
+# !data/embeddings/README.md
 
 # Keep metadata tracked (comment out if files get too large)
 # data/metadata/**/*
