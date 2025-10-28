@@ -30,11 +30,11 @@ EMBEDDINGS_FILE = DATA_DIR / "embeddings" / "embeddings.jsonl"
 # Environment variables (.env)
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "smartlawyer_embeddings")
+QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "Embeddings")
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 MONGO_DB = os.getenv("MONGO_DB", "smartlawyer")
-MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "metadata")
+MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "Embeddings")
 
 VECTOR_SIZE = 768  # For sentence-transformers MiniLM/MPNet
 
