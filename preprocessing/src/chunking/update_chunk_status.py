@@ -58,17 +58,19 @@ def main():
         if not cleaned_path:
             continue
 
+        # Skip if already chunked
+        if doc.get("processing_status", {}).get("chunked", False):
+            total_valid += 1  # Count existing chunked files
+            continue
+
         chunk_file = find_chunk_file(cleaned_path)
         if chunk_file and is_valid_chunk_file(chunk_file):
-            # Update document metadata
+            # Update document metadata (only for previously unchunked files)
             doc["chunked_path"] = chunk_file.replace("\\", "/")
             doc["status"] = "chunked"
             doc["processing_status"]["chunked"] = True
             updated_count += 1
             total_valid += 1
-        else:
-            # Ensure it's marked unchunked
-            doc["processing_status"]["chunked"] = False
 
     # Update summary fields
     # Insert total_chunked after total_cleaned
