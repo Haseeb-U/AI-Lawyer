@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Lawyer - Legal Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,8 +15,8 @@
         }
 
         :root {
-            --primary-color: #2563eb;
-            --primary-hover: #1d4ed8;
+            --primary-color: #e60023;
+            --primary-hover: #c50018;
             --secondary-color: #64748b;
             --background: #f8fafc;
             --surface: #ffffff;
@@ -27,7 +30,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
             background: var(--background);
             color: var(--text-primary);
             line-height: 1.6;
@@ -249,7 +252,141 @@
         .message-text {
             font-size: 15px;
             line-height: 1.6;
-            white-space: pre-wrap;
+        }
+
+        /* Markdown Rendering Styles */
+        .message-text h1,
+        .message-text h2,
+        .message-text h3,
+        .message-text h4,
+        .message-text h5,
+        .message-text h6 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .message-text h1 { font-size: 24px; }
+        .message-text h2 { font-size: 20px; }
+        .message-text h3 { font-size: 18px; }
+        .message-text h4 { font-size: 16px; }
+        .message-text h5 { font-size: 15px; }
+        .message-text h6 { font-size: 14px; }
+
+        .message-text p {
+            margin-bottom: 12px;
+        }
+
+        .message-text strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .message.user .message-text strong {
+            color: white;
+        }
+
+        .message-text em {
+            font-style: italic;
+        }
+
+        .message-text ul,
+        .message-text ol {
+            margin: 12px 0;
+            padding-left: 24px;
+        }
+
+        .message-text li {
+            margin-bottom: 6px;
+        }
+
+        .message-text code {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .message.user .message-text code {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message-text pre {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        .message.user .message-text pre {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .message-text pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        .message-text blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding-left: 16px;
+            margin: 12px 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .message.user .message-text blockquote {
+            border-left-color: white;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .message-text hr {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 16px 0;
+        }
+
+        .message.user .message-text hr {
+            border-top-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .message-text table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+        }
+
+        .message-text th,
+        .message-text td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .message-text th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .message.user .message-text th {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message.user .message-text th,
+        .message.user .message-text td {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .message-text a {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        .message.user .message-text a {
+            color: white;
         }
 
         .message-sources {
@@ -701,7 +838,20 @@
             
             const textDiv = document.createElement('div');
             textDiv.className = 'message-text';
-            textDiv.textContent = text;
+            
+            // Render markdown for assistant messages, plain text for user messages
+            if (sender === 'assistant' && typeof marked !== 'undefined') {
+                // Configure marked options
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    headerIds: false,
+                    mangle: false
+                });
+                textDiv.innerHTML = marked.parse(text);
+            } else {
+                textDiv.textContent = text;
+            }
             
             content.appendChild(textDiv);
             
