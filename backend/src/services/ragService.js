@@ -19,11 +19,21 @@ class RAGService {
     try {
       console.log('🔍 Processing query:', query);
 
-      // Step 1: Generate embedding for the user query
-      console.log('📊 Generating query embedding...');
-      const queryEmbedding = await embeddingService.generateEmbedding(query);
+      // Step 1: Translate query to English if it's in Urdu (for embedding and search)
+      console.log('🌐 Translating query if needed...');
+      const translationResult = await llmService.translateQueryToEnglish(query);
+      const queryForEmbedding = translationResult.translatedQuery;
+      const originalQuery = translationResult.originalQuery;
       
-      // Step 2: Search for similar chunks in Qdrant
+      if (translationResult.isUrdu) {
+        console.log('📝 Detected Urdu query, using translated version for search');
+      }
+
+      // Step 2: Generate embedding for the translated/English query
+      console.log('📊 Generating query embedding...');
+      const queryEmbedding = await embeddingService.generateEmbedding(queryForEmbedding);
+      
+      // Step 3: Search for similar chunks in Qdrant
       console.log('🔎 Searching for relevant legal documents...');
       const relevantChunks = await qdrantService.searchSimilar(queryEmbedding, topK);
       
@@ -31,73 +41,77 @@ class RAGService {
         return {
           answer: 'I apologize, but I could not find relevant legal documents to answer your question. Please try rephrasing your query or ask about a different legal topic.',
           sources: [],
-          query: query,
+          query: originalQuery,
         };
       }
 
       console.log(`✅ Found ${relevantChunks.length} relevant chunks`);
 
-      // Step 3: Generate response using LLM with context
-      console.log('🤖 Generating response with LLM...');
-      const answer = await llmService.generateResponse(query, relevantChunks);
+      // Step 4: Generate response using LLM with context - USE ORIGINAL QUERY
+      console.log('🤖 Generating response with LLM using original query...');
+      const llmResult = await llmService.generateResponse(originalQuery, relevantChunks);
+      const answer = llmResult.answer;
+      const usedSourceIndices = llmResult.usedSources;
 
-      // Step 4: Prepare sources for citation
-      const sources = relevantChunks.map((chunk, index) => {
-        const source = {
-          // Reference Information
-          index: index + 1,
-          relevance_score: parseFloat(chunk.score.toFixed(4)),
-          
-          // Document Details
-          document: {
-            title: chunk.title,
-            type: chunk.document_type,
-            year: chunk.year,
-          },
-          
-          // chunk Information
-          chunk: {
-            title: chunk.chunk_title || 'N/A',
-            type: chunk.chunk_type || 'N/A',
-            excerpt: chunk.chunk.length > 300 
-              ? chunk.chunk.substring(0, 300) + '...' 
-              : chunk.chunk,
-          },
-          
-          // Source Links
-          links: {},
-        };
+      console.log(`📚 LLM used ${usedSourceIndices.length} out of ${relevantChunks.length} sources`);
 
-        // Add optional fields only if they exist
-        if (chunk.court) {
-          source.document.court = chunk.court;
-        }
-        
-        if (chunk.source_website) {
-          source.links.source_website = chunk.source_website;
-        }
-        
-        if (chunk.source_url) {
-          source.links.document_url = chunk.source_url;
-        }
-        
-        if (chunk.source_page) {
-          source.links.source_page = chunk.source_page;
-        }
+      // Step 4: Prepare sources for citation - only include sources that were actually used
+      const sources = relevantChunks
+        .map((chunk, index) => ({ chunk, originalIndex: index + 1 }))
+        .filter(({ originalIndex }) => usedSourceIndices.includes(originalIndex))
+        .map(({ chunk, originalIndex }) => {
+          const source = {
+            // Reference Information - keep the original index so it matches citations in the answer
+            index: originalIndex,
+            relevance_score: parseFloat(chunk.score.toFixed(4)),
+            
+            // Document Details
+            document: {
+              title: chunk.title,
+              type: chunk.document_type,
+              year: chunk.year,
+            },
+            
+            // chunk Information
+            chunk: {
+              title: chunk.chunk_title || 'N/A',
+              type: chunk.chunk_type || 'N/A',
+              text: chunk.chunk, // Full chunk text for modal
+            },
+            
+            // Source Links
+            links: {},
+          };
 
-        return source;
-      });
+          // Add optional fields only if they exist
+          if (chunk.court) {
+            source.document.court = chunk.court;
+          }
+          
+          if (chunk.source_url) {
+            source.links.document_url = chunk.source_url;
+          }
+          
+          if (chunk.source_page) {
+            source.links.source_page = chunk.source_page;
+          }
+
+          return source;
+        });
 
       console.log('✅ Response generated successfully');
 
       return {
         answer,
         sources,
-        query,
+        query: originalQuery,
         metadata: {
           chunks_retrieved: relevantChunks.length,
+          chunks_used: usedSourceIndices.length,
           model: 'google/gemini-2.0-flash-exp:free',
           embedding_model: 'sentence-transformers/all-mpnet-base-v2',
+          query_translated: translationResult.isUrdu,
+          query_for_search: translationResult.isUrdu ? queryForEmbedding : undefined,
         },
       };
     } catch (error) {

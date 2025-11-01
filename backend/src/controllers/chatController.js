@@ -37,7 +37,8 @@ export const askQuestion = async (req, res) => {
     // Process query using RAG pipeline
     const result = await ragService.processQuery(
       validation.query,
-      topK || 5 // Default to 5 results if not specified
+      // topK || 5 // Default to 5 results if not specified
+      10 // Always use top 20 for better context
     );
 
     // Return successful response
@@ -105,6 +106,7 @@ export const getDocuments = async (req, res) => {
           document_type: { $first: '$document_type' },
           source_website: { $first: '$source_website' },
           court: { $first: '$court' },
+          createdAt: { $first: '$createdAt' }, // Get the first createdAt for sorting
         }
       },
       {
@@ -116,10 +118,11 @@ export const getDocuments = async (req, res) => {
           document_type: 1,
           source_website: 1,
           court: 1,
+          createdAt: 1,
         }
       },
       {
-        $sort: { title: 1, year: -1 }
+        $sort: { createdAt: -1 } // Sort by upload date in descending order (newest first)
       }
     ]);
 

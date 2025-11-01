@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Lawyer - Legal Assistant</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Marked.js for Markdown Rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Marked.js for Markdown Rendering - Using specific version 4.3.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -418,11 +418,40 @@
             margin-bottom: 6px;
             border-left: 3px solid var(--primary-color);
             transition: all 0.2s;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            position: relative;
+        }
+
+        .source-item::after {
+            content: '👁️';
+            position: absolute;
+            right: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 16px;
+        }
+
+        .source-badge {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 11px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .source-item:hover {
             background: #e2e8f0;
             transform: translateX(2px);
+            padding-right: 40px;
+        }
+
+        .source-item:hover::after {
+            opacity: 1;
         }
 
         .source-item a {
@@ -439,6 +468,11 @@
             background: rgba(255, 255, 255, 0.1);
             border-left-color: white;
             color: white;
+        }
+
+        .message.user .source-badge {
+            background: white;
+            color: var(--primary-color);
         }
 
         .message.user .source-item:hover {
@@ -603,9 +637,311 @@
             text-align: center;
             color: var(--text-secondary);
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .modal-title {
+            flex: 1;
+        }
+
+        .modal-title h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .modal-title .source-number {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal-close {
+            background: #f1f5f9;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .modal-close:hover {
+            background: #e2e8f0;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .modal-section {
+            margin-bottom: 24px;
+        }
+
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .modal-info-item {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .modal-info-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .modal-info-value {
+            font-size: 15px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .modal-chunk-text {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal-relevance {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f0fdf4;
+            color: #15803d;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .modal-relevance-bar {
+            width: 100px;
+            height: 8px;
+            background: #dcfce7;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .modal-relevance-fill {
+            height: 100%;
+            background: #15803d;
+            transition: width 0.3s ease;
+        }
+
+        .modal-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .modal-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .modal-link:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .modal-no-links {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
+    <!-- Source Details Modal -->
+    <div class="modal-overlay" id="sourceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <div class="source-number" id="modalSourceNumber"></div>
+                    <h3 id="modalDocumentTitle"></h3>
+                </div>
+                <button class="modal-close" id="modalCloseBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        📊 Relevance Score
+                    </div>
+                    <div class="modal-relevance">
+                        <span id="modalRelevanceScore"></span>
+                        <div class="modal-relevance-bar">
+                            <div class="modal-relevance-fill" id="modalRelevanceBar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        📄 Document Information
+                    </div>
+                    <div class="modal-info-grid" id="modalDocumentInfo">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        📑 Chunk Information
+                    </div>
+                    <div class="modal-info-grid" id="modalChunkInfo">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        📝 Full Chunk Text
+                    </div>
+                    <div class="modal-chunk-text" id="modalChunkText">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <div class="modal-section-title">
+                        🔗 Source Links
+                    </div>
+                    <div class="modal-links" id="modalLinks">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
     <div class="container">
         <!-- Sidebar - Documents List -->
         <aside class="sidebar">
@@ -672,6 +1008,7 @@
         // State
         let allDocuments = [];
         let isLoading = false;
+        let currentSources = []; // Store sources for modal access
 
         // Elements
         const documentsList = document.getElementById('documentsList');
@@ -679,6 +1016,8 @@
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
+        const sourceModal = document.getElementById('sourceModal');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -708,6 +1047,23 @@
             // Search documents
             documentSearch.addEventListener('input', (e) => {
                 filterDocuments(e.target.value);
+            });
+
+            // Close modal on button click
+            modalCloseBtn.addEventListener('click', closeSourceModal);
+
+            // Close modal on overlay click
+            sourceModal.addEventListener('click', (e) => {
+                if (e.target === sourceModal) {
+                    closeSourceModal();
+                }
+            });
+
+            // Close modal on Escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && sourceModal.classList.contains('active')) {
+                    closeSourceModal();
+                }
             });
         }
 
@@ -804,6 +1160,9 @@
                 // Remove typing indicator
                 removeTypingIndicator(typingId);
                 
+                // Store sources for modal access
+                currentSources = data.sources || [];
+                
                 // Add assistant response
                 addMessage(data.answer, 'assistant', data.sources);
 
@@ -841,14 +1200,19 @@
             
             // Render markdown for assistant messages, plain text for user messages
             if (sender === 'assistant' && typeof marked !== 'undefined') {
-                // Configure marked options
-                marked.setOptions({
-                    breaks: true,
-                    gfm: true,
-                    headerIds: false,
-                    mangle: false
-                });
-                textDiv.innerHTML = marked.parse(text);
+                try {
+                    // Use marked.parse for version 4.x
+                    textDiv.innerHTML = marked.parse(text, {
+                        breaks: true,
+                        gfm: true,
+                        headerIds: false,
+                        mangle: false
+                    });
+                    console.log('✅ Markdown rendered successfully');
+                } catch (error) {
+                    console.error('❌ Markdown parsing error:', error);
+                    textDiv.textContent = text;
+                }
             } else {
                 textDiv.textContent = text;
             }
@@ -868,15 +1232,22 @@
                 sources.forEach(source => {
                     const sourceItem = document.createElement('div');
                     sourceItem.className = 'source-item';
+                    sourceItem.style.cursor = 'pointer';
                     
                     // Handle both nested and flat source structures
+                    const sourceIndex = source.index || 0;
                     const title = source.document?.title || source.title || 'Unknown Document';
                     const year = source.document?.year || source.year || 'N/A';
                     const docType = source.document?.type || source.document_type || '';
                     const chunkTitle = source.chunk?.title || source.chunk_title || '';
                     const sourceLink = source.links?.source_page || source.source_page || null;
                     
-                    // Build the source text
+                    // Create source number badge
+                    const badge = document.createElement('span');
+                    badge.className = 'source-badge';
+                    badge.textContent = `[Source ${sourceIndex}]`;
+                    
+                    // Build the source text (without the number since it's in the badge)
                     let sourceText = `${title} (${year})`;
                     if (docType) {
                         sourceText += ` - ${docType}`;
@@ -885,18 +1256,22 @@
                         sourceText += ` | ${chunkTitle}`;
                     }
                     
-                    // If there's a link, make it clickable
-                    if (sourceLink) {
-                        const link = document.createElement('a');
-                        link.href = sourceLink;
-                        link.target = '_blank';
-                        link.textContent = sourceText;
-                        link.style.color = 'inherit';
-                        link.style.textDecoration = 'none';
-                        sourceItem.appendChild(link);
-                    } else {
-                        sourceItem.textContent = sourceText;
-                    }
+                    // Add badge first
+                    sourceItem.appendChild(badge);
+                    
+                    // Add a space between badge and text
+                    sourceItem.appendChild(document.createTextNode(' '));
+                    
+                    // Add the text
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = sourceText;
+                    sourceItem.appendChild(textSpan);
+                    
+                    // Make entire item clickable to open modal
+                    sourceItem.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openSourceModal(source);
+                    });
                     
                     sourcesDiv.appendChild(sourceItem);
                 });
@@ -946,6 +1321,118 @@
             if (indicator) {
                 indicator.remove();
             }
+        }
+
+        // Open Source Modal
+        function openSourceModal(source) {
+            console.log('Opening modal for source:', source);
+            
+            // Extract data from source object
+            const sourceIndex = source.index || 0;
+            const title = source.document?.title || source.title || 'Unknown Document';
+            const year = source.document?.year || source.year || 'N/A';
+            const docType = source.document?.type || source.document_type || 'Unknown';
+            const court = source.document?.court || source.court || null;
+            const relevanceScore = source.relevance_score || 0;
+            
+            // Chunk information
+            const chunkTitle = source.chunk?.title || source.chunk_title || 'N/A';
+            const chunkType = source.chunk?.type || source.chunk_type || 'N/A';
+            const chunkText = source.chunk?.text || source.chunk_text || 'No text available';
+            
+            // Links
+            const links = source.links || {};
+            const documentUrl = links.document_url || source.source_url || null;
+            const sourcePage = links.source_page || source.source_page || null;
+            
+            // Populate modal
+            document.getElementById('modalSourceNumber').textContent = `Source ${sourceIndex}`;
+            document.getElementById('modalDocumentTitle').textContent = title;
+            
+            // Relevance score
+            const scorePercent = (relevanceScore * 100).toFixed(1);
+            document.getElementById('modalRelevanceScore').textContent = `${scorePercent}% Match`;
+            document.getElementById('modalRelevanceBar').style.width = `${scorePercent}%`;
+            
+            // Document information
+            const docInfoHtml = `
+                <div class="modal-info-item">
+                    <div class="modal-info-label">Document Title</div>
+                    <div class="modal-info-value">${title}</div>
+                </div>
+                <div class="modal-info-item">
+                    <div class="modal-info-label">Year</div>
+                    <div class="modal-info-value">${year}</div>
+                </div>
+                <div class="modal-info-item">
+                    <div class="modal-info-label">Document Type</div>
+                    <div class="modal-info-value">${docType}</div>
+                </div>
+                ${court ? `
+                <div class="modal-info-item">
+                    <div class="modal-info-label">Court</div>
+                    <div class="modal-info-value">${court}</div>
+                </div>
+                ` : ''}
+            `;
+            document.getElementById('modalDocumentInfo').innerHTML = docInfoHtml;
+            
+            // Chunk information
+            const chunkInfoHtml = `
+                <div class="modal-info-item">
+                    <div class="modal-info-label">Chunk Title</div>
+                    <div class="modal-info-value">${chunkTitle}</div>
+                </div>
+                <div class="modal-info-item">
+                    <div class="modal-info-label">Chunk Type</div>
+                    <div class="modal-info-value">${chunkType}</div>
+                </div>
+            `;
+            document.getElementById('modalChunkInfo').innerHTML = chunkInfoHtml;
+            
+            // Full chunk text
+            document.getElementById('modalChunkText').textContent = chunkText;
+            
+            // Links
+            let linksHtml = '';
+            if (sourcePage) {
+                linksHtml += `
+                    <a href="${sourcePage}" target="_blank" class="modal-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        Source Page
+                    </a>
+                `;
+            }
+            if (documentUrl) {
+                linksHtml += `
+                    <a href="${documentUrl}" target="_blank" class="modal-link">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        View Document
+                    </a>
+                `;
+            }
+            
+            if (!linksHtml) {
+                linksHtml = '<div class="modal-no-links">No external links available</div>';
+            }
+            
+            document.getElementById('modalLinks').innerHTML = linksHtml;
+            
+            // Show modal
+            sourceModal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        // Close Source Modal
+        function closeSourceModal() {
+            sourceModal.classList.remove('active');
+            document.body.style.overflow = ''; // Restore scrolling
         }
     </script>
 </body>
