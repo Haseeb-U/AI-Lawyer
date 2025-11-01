@@ -37,8 +37,8 @@ export const askQuestion = async (req, res) => {
     // Process query using RAG pipeline
     const result = await ragService.processQuery(
       validation.query,
-      // topK || 5 // Default to 5 results if not specified
-      10 // Always use top 20 for better context
+      // topK || 10 // Use topK from request, default to 10 (minimum chunks)
+      10
     );
 
     // Return successful response

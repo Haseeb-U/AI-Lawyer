@@ -34,8 +34,12 @@ class RAGService {
       const queryEmbedding = await embeddingService.generateEmbedding(queryForEmbedding);
       
       // Step 3: Search for similar chunks in Qdrant
+      // Retrieve a larger set first (50 chunks) to find all potentially relevant ones
       console.log('🔎 Searching for relevant legal documents...');
-      const relevantChunks = await qdrantService.searchSimilar(queryEmbedding, topK);
+      const initialChunks = await qdrantService.searchSimilar(queryEmbedding, 50);
+      
+      // Apply dynamic filtering based on score threshold
+      let relevantChunks = this.filterChunksByScore(initialChunks, topK);
       
       if (relevantChunks.length === 0) {
         return {
@@ -46,6 +50,11 @@ class RAGService {
       }
 
       console.log(`✅ Found ${relevantChunks.length} relevant chunks`);
+
+      // Log max and min relevance scores of chunks being sent to LLM
+      const maxScore = relevantChunks[0].score; // First chunk has highest score
+      const minScore = relevantChunks[relevantChunks.length - 1].score; // Last chunk has lowest score
+      console.log(`📊 Relevance Score Range → Max: ${maxScore.toFixed(4)}, Min: ${minScore.toFixed(4)}`);
 
       // Step 4: Generate response using LLM with context - USE ORIGINAL QUERY
       console.log('🤖 Generating response with LLM using original query...');
@@ -160,6 +169,71 @@ class RAGService {
       valid: true,
       query: trimmedQuery,
     };
+  }
+
+  /**
+   * Filter chunks by multiple criteria (ANY match includes the chunk)
+   * A chunk is included if it meets ANY of these criteria:
+   * 1. Is in the top 10 chunks (minimum guarantee)
+   * 2. Score > (highest_score - 0.1)
+   * 3. Score > average score of all retrieved chunks
+   * 4. Score > 0.5 (absolute threshold)
+   * @param {Array} chunks - Array of chunks with scores
+   * @param {number} minChunks - Minimum number of chunks to return (default: 10)
+   * @returns {Array} - Filtered chunks
+   */
+  filterChunksByScore(chunks, minChunks = 10) {
+    if (!chunks || chunks.length === 0) {
+      return [];
+    }
+
+    // If we have fewer than minChunks, return all
+    if (chunks.length <= minChunks) {
+      console.log(`📊 Retrieved ${chunks.length} chunks (less than minimum ${minChunks})`);
+      return chunks;
+    }
+
+    // Calculate thresholds
+    const highestScore = chunks[0].score;
+    const relativeThreshold = highestScore - 0.1;
+    
+    // Calculate average score
+    const averageScore = chunks.reduce((sum, chunk) => sum + chunk.score, 0) / chunks.length;
+    
+    const absoluteThreshold = 0.5;
+
+    console.log(`📊 Score Analysis:`);
+    console.log(`   • Highest: ${highestScore.toFixed(4)}`);
+    console.log(`   • Average: ${averageScore.toFixed(4)}`);
+    console.log(`   • Relative Threshold (highest - 0.1): ${relativeThreshold.toFixed(4)}`);
+    console.log(`   • Absolute Threshold: ${absoluteThreshold.toFixed(4)}`);
+
+    // Filter chunks based on multiple criteria (OR logic)
+    const filteredChunks = chunks.filter((chunk, index) => {
+      const isTopN = index < minChunks; // Criterion 1: Top N
+      const meetsRelativeThreshold = chunk.score > relativeThreshold; // Criterion 2
+      const meetsAverageThreshold = chunk.score > averageScore; // Criterion 3
+      const meetsAbsoluteThreshold = chunk.score > absoluteThreshold; // Criterion 4
+
+      return isTopN || meetsRelativeThreshold || meetsAverageThreshold || meetsAbsoluteThreshold;
+    });
+
+    // Count how many chunks met each criterion
+    const criteriaStats = {
+      topN: chunks.slice(0, minChunks).length,
+      relativeThreshold: chunks.filter(c => c.score > relativeThreshold).length,
+      averageThreshold: chunks.filter(c => c.score > averageScore).length,
+      absoluteThreshold: chunks.filter(c => c.score > absoluteThreshold).length,
+    };
+
+    console.log(`📊 Chunks meeting each criterion:`);
+    console.log(`   • Top ${minChunks}: ${criteriaStats.topN}`);
+    console.log(`   • Score > ${relativeThreshold.toFixed(4)}: ${criteriaStats.relativeThreshold}`);
+    console.log(`   • Score > ${averageScore.toFixed(4)} (avg): ${criteriaStats.averageThreshold}`);
+    console.log(`   • Score > ${absoluteThreshold}: ${criteriaStats.absoluteThreshold}`);
+    console.log(`📊 Final result: ${chunks.length} chunks → ${filteredChunks.length} chunks selected`);
+
+    return filteredChunks;
   }
 }
 
