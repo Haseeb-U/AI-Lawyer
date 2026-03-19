@@ -1,12 +1,27 @@
-import { useState } from 'react';
-import { marked } from 'marked';
-import { fetchWithAuth } from '../utils/api';
+import React, { useState, useRef } from 'react';
+import { IconAlertTriangle, IconFileText } from '@tabler/icons-react';
+import { useContractAnalysis } from '../hooks/useContractAnalysis';
 
-export default function Contracts() {
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [analysis, setAnalysis] = useState('');
-    const [loading, setLoading] = useState(false);
+// Sub-components
+import { ContractUploader } from '../components/contracts/ContractUploader';
+import { ContractFileCard } from '../components/contracts/ContractFileCard';
+import { ContractAnalysisResult } from '../components/contracts/ContractAnalysisResult';
+
+const Contracts = () => {
+    const {
+        file,
+        analysis,
+        loading,
+        error,
+        progress,
+        handleFile,
+        removeFile,
+        analyzeContract
+    } = useContractAnalysis();
+    
+    // UI Local State for Drag & Drop
     const [dragActive, setDragActive] = useState(false);
+    const fileInputRef = useRef(null);
 
     const handleDrag = (e) => {
         e.preventDefault();
@@ -22,6 +37,7 @@ export default function Contracts() {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
+        
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             handleFile(e.dataTransfer.files[0]);
         }
@@ -34,129 +50,61 @@ export default function Contracts() {
         }
     };
 
-    const handleFile = (file) => {
-        if (file && (file.type === 'application/pdf' || file.type === 'text/plain')) {
-            setSelectedFile(file);
-        } else {
-            alert('Please upload a valid PDF or TXT file.');
-        }
-    };
-
-    const analyzeContract = async () => {
-        if (!selectedFile) return;
-
-        setLoading(true);
-        setAnalysis('');
-
-        const formData = new FormData();
-        formData.append('contract', selectedFile);
-
-        try {
-            const response = await fetchWithAuth('/contracts/analyze', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-
-            if (data.success) {
-                setAnalysis(data.analysis);
-            } else {
-                alert('Analysis failed: ' + data.error);
-            }
-        } catch (error) {
-            alert('An error occurred during analysis.');
-        } finally {
-            setLoading(false);
+    const handleRemove = () => {
+        removeFile();
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
     return (
-        <div className="container" style={{ paddingTop: '2rem' }}>
-            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                <h1>AI Contract Review</h1>
-                <p style={{ color: 'var(--text-muted)' }}>Upload your contract (PDF or TXT) to identify risks, loopholes, and key terms.</p>
-            </div>
-
-            <div className="glass-card fade-in">
-                    <div
-                        className={`upload-area ${dragActive ? 'dragover' : ''}`}
-                        onDragEnter={handleDrag}
-                        onDragLeave={handleDrag}
-                        onDragOver={handleDrag}
-                        onDrop={handleDrop}
-                        onClick={() => document.getElementById('file-input').click()}
-                    >
-                        <div className="upload-icon">📂</div>
-                        <h3>Click to upload or drag and drop</h3>
-                        <p style={{ color: 'var(--text-muted)' }}>Supported formats: PDF, TXT (Max 10MB)</p>
-                        <input
-                            type="file"
-                            id="file-input"
-                            hidden
-                            accept=".pdf,.txt"
-                            onChange={handleChange}
-                        />
-                        {selectedFile && <div className="file-info">Selected: {selectedFile.name}</div>}
+        <div className="flex-1 flex flex-col bg-[var(--background)] overflow-hidden relative h-full">
+            <div className="flex-1 overflow-y-auto w-full custom-scrollbar pb-24 px-8 lg:px-12 pt-8">
+                <div className="max-w-4xl mx-auto space-y-10">
+                    <div className="mb-8">
+                        <h1 className="text-[18px] font-semibold text-[var(--foreground)] flex items-center gap-2 tracking-tight">
+                            Contract Analysis <span className="text-[10px] font-bold tracking-wider text-[#d4af37] bg-[var(--navbar-bg)] px-[5px] py-[1px] rounded uppercase align-middle relative -top-0.5 shadow-sm border border-[#d4af37]/30">AI</span>
+                        </h1>
+                        <p className="text-[13px] text-[var(--text-soft)] mt-1 font-medium">Upload legal contracts to instantly identify risks, loopholes, and obligations.</p>
                     </div>
 
-                    <button
-                        className="btn btn-primary"
-                        style={{ width: '100%' }}
-                        disabled={!selectedFile || loading}
-                        onClick={analyzeContract}
-                    >
-                        {loading ? <><span className="spinner"></span> Analyzing...</> : 'Analyze Contract'}
-                </button>
-            </div>
+                    {error && (
+                        <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-xl flex items-start gap-3 text-rose-700 shadow-sm animate-in fade-in slide-in-from-top-2">
+                            <IconAlertTriangle className="shrink-0 mt-0.5 text-rose-500" size={18} />
+                            <div>
+                                <p className="font-bold text-[13px]">Upload Exception</p>
+                                <p className="text-[13px] opacity-90 mt-0.5">{error}</p>
+                            </div>
+                        </div>
+                    )}
 
-            {analysis && (
-                <div className="glass-card fade-in" style={{ marginTop: '2rem' }}>
-                    <h2 style={{ borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem', marginBottom: '2rem' }}>Analysis Report</h2>
-                    <div className="markdown-content" dangerouslySetInnerHTML={{ __html: marked.parse(analysis) }} />
+                    {!file ? (
+                        <ContractUploader 
+                            dragActive={dragActive}
+                            handleDrag={handleDrag}
+                            handleDrop={handleDrop}
+                            handleChange={handleChange}
+                            fileInputRef={fileInputRef}
+                        />
+                    ) : (
+                        <ContractFileCard 
+                            file={file}
+                            loading={loading}
+                            progress={progress}
+                            analysis={analysis}
+                            handleRemove={handleRemove}
+                            analyzeContract={analyzeContract}
+                        />
+                    )}
+
+                    {/* Markdown Output Component Container */}
+                    <div className="max-w-none w-full animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
+                        <ContractAnalysisResult analysis={analysis} />
+                    </div>
                 </div>
-            )}
-
-            <style>{`
-        .upload-area {
-            border: 2px dashed var(--glass-border);
-            border-radius: 1rem;
-            padding: 4rem 2rem;
-            text-align: center;
-            background: rgba(255, 255, 255, 0.02);
-            transition: all 0.3s;
-            cursor: pointer;
-            margin-bottom: 2rem;
-        }
-
-        .upload-area:hover,
-        .upload-area.dragover {
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.1);
-            box-shadow: 0 0 24px rgba(34, 197, 94, 0.15);
-        }
-
-        .upload-icon {
-            font-size: 3rem;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-        }
-
-        .file-info {
-            margin-top: 1rem;
-            color: var(--accent-color);
-            font-weight: 500;
-        }
-        
-        @media (max-width: 768px) {
-            .upload-area {
-                padding: 2rem 1rem;
-            }
-            
-            .upload-icon {
-                font-size: 2rem;
-            }
-        }
-      `}</style>
+            </div>
         </div>
     );
-}
+};
+
+export default Contracts;
